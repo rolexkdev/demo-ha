@@ -195,15 +195,16 @@ const gracefulShutdown = async (signal: string) => {
 process.on('SIGTERM', () => gracefulShutdown('SIGTERM'));
 process.on('SIGINT', () => gracefulShutdown('SIGINT'));
 
-// Handle uncaught errors
+// Handle uncaught errors - only log, don't shutdown to avoid port conflicts
 process.on('uncaughtException', (error) => {
   console.error('Uncaught Exception:', error);
-  gracefulShutdown('UNCAUGHT_EXCEPTION');
+  // Don't call gracefulShutdown here as it can cause port conflicts
+  process.exit(1);
 });
 
 process.on('unhandledRejection', (reason, promise) => {
   console.error('Unhandled Rejection at:', promise, 'reason:', reason);
-  gracefulShutdown('UNHANDLED_REJECTION');
+  // Don't call gracefulShutdown here as it can cause port conflicts
 });
 
 export default app;
