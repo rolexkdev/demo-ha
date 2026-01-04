@@ -16,6 +16,8 @@ export const auth = betterAuth({
       account: schema.accounts,
       verification: schema.verifications,
     },
+    // Generate proper UUIDs for PostgreSQL
+    generateId: () => crypto.randomUUID(),
   }),
   
   // Email and password authentication
