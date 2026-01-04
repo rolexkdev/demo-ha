@@ -29,6 +29,10 @@ const createPool = (config: DatabaseConfig): Pool => {
     max: config.max ?? 20,
     idleTimeoutMillis: config.idleTimeoutMillis ?? 30000,
     connectionTimeoutMillis: config.connectionTimeoutMillis ?? 5000,
+    // SSL configuration for self-signed certificates
+    ssl: process.env.DB_SSL_ENABLED === 'true' ? {
+      rejectUnauthorized: false, // Allow self-signed certificates
+    } : false,
   };
 
   return new Pool(poolConfig);
