@@ -157,20 +157,19 @@ const app = new Elysia()
 
 // Server configuration
 const PORT = Number(process.env.PORT) || 3000;
-const HOST = process.env.HOST || '0.0.0.0';
+const HOST = process.env.HOST || '127.0.0.1';
 
-// Start server
-app.listen({
+// Start server - bind to 127.0.0.1 only to avoid dual-stack issues
+const server = app.listen({
   port: PORT,
   hostname: HOST,
-}, () => {
-  console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
-  console.log(`🚀 Server is running`);
-  console.log(`📍 Local:    http://localhost:${PORT}`);
-  console.log(`📍 Network:  http://${HOST}:${PORT}`);
-  console.log(`🌍 Environment: ${process.env.NODE_ENV || 'development'}`);
-  console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
 });
+
+console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+console.log(`🚀 Server is running`);
+console.log(`📍 URL:      http://${HOST}:${PORT}`);
+console.log(`🌍 Environment: ${process.env.NODE_ENV || 'development'}`);
+console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
 
 /**
  * Graceful shutdown handler
