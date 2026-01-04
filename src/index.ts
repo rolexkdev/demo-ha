@@ -5,6 +5,31 @@ import { userRoutes } from './routes/users';
 import { postRoutes } from './routes/posts';
 import { checkDatabaseHealth, closeDatabaseConnections } from './config/database';
 
+// Prevent duplicate Bun.serve calls (watch/HMR can evaluate the module twice)
+const servePatchedFlag = '__demo_bun_serve_patched__';
+const globalServeState = globalThis as typeof globalThis & {
+  [servePatchedFlag]?: boolean;
+  __demo_bun_server__?: ReturnType<typeof Bun.serve> | null;
+};
+
+if (!globalServeState[servePatchedFlag]) {
+  const originalServe = Bun.serve;
+  globalServeState.__demo_bun_server__ = null;
+
+  Bun.serve = (options) => {
+    if (globalServeState.__demo_bun_server__) {
+      console.warn('Reusing existing Bun server; duplicate listen ignored');
+      return globalServeState.__demo_bun_server__;
+    }
+
+    const server = originalServe(options);
+    globalServeState.__demo_bun_server__ = server;
+    return server;
+  };
+
+  globalServeState[servePatchedFlag] = true;
+}
+
 /**
  * Main application setup
  */
@@ -79,16 +104,28 @@ const app = new Elysia()
 const PORT = Number(process.env.PORT) || 3000;
 const HOST = process.env.HOST || '0.0.0.0';
 
-// Keep single server instance even if the module is evaluated twice (watch/hmr)
+// Keep single server instance even if the module is re-evaluated (watch/HMR)
+type ServerInstance = ReturnType<typeof app.listen>;
 const globalKey = '__demo_backend_server__';
 const globalState = globalThis as typeof globalThis & {
-  __demo_backend_server__?: ReturnType<typeof app.listen>;
+  __demo_backend_server__?: ServerInstance;
+};
+
+const logStartup = () => {
+  console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+  console.log(`🚀 Server is running on port ${PORT}`);
+  console.log(`🌍 Environment: ${process.env.NODE_ENV || 'development'}`);
+  console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
 };
 
 const shutdown = async () => {
   const server = globalState[globalKey];
   if (server && typeof server.stop === 'function') {
-    server.stop();
+    try {
+      server.stop();
+    } catch (stopError) {
+      console.warn('Server already stopped:', stopError);
+    }
   }
   await closeDatabaseConnections();
 };
@@ -103,10 +140,7 @@ const startServer = () => {
     const server = app.listen({ port: PORT, hostname: HOST });
     globalState[globalKey] = server;
 
-    console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
-    console.log(`🚀 Server is running on port ${PORT}`);
-    console.log(`🌍 Environment: ${process.env.NODE_ENV || 'development'}`);
-    console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+    logStartup();
 
     const handleExit = async () => {
       console.log('\nShutting down...');
